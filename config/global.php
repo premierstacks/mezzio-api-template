@@ -8,16 +8,16 @@ use Laminas\ConfigAggregator\ArrayProvider;
 use Laminas\ConfigAggregator\ConfigAggregator;
 
 use function getenv;
-use function in_array;
 
 return (new ConfigAggregator([
     new ArrayProvider([
-        'debug' => in_array(getenv('APP_ENV'), ['local', 'ci'], true),
+        'APP_ENV' => getenv('APP_ENV'),
         'db' => [
-            'driver' => 'Pdo_Mysql',
             'database' => getenv('DB_DATABASE'),
-            'username' => getenv('DB_USER'),
+            'driver' => 'Pdo_Mysql',
             'password' => getenv('DB_PASSWORD'),
+            'username' => getenv('DB_USER'),
         ],
+        'debug' => false,
     ]),
 ]))->getMergedConfig();

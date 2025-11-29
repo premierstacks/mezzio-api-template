@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Bootstrap;
 
 use App\Handler\PingHandler;
+use GlobIterator;
 use Laminas\ConfigAggregator\ArrayProvider;
 use Laminas\ConfigAggregator\ConfigAggregator;
 use Laminas\ConfigAggregator\PhpFileProvider;
@@ -27,14 +28,10 @@ use function assert;
 use function getenv;
 use function is_array;
 use function is_string;
-use function realpath;
 
 final readonly class Bootstrapper
 {
-    /**
-     * @return array{0: Application, 1: MiddlewareFactory, 2: ContainerInterface}
-     */
-    public static function bootstrap(): array
+    public static function bootstrap(): Kernel
     {
         /**
          * @phpstan-ignore-next-line argument.type
@@ -42,21 +39,19 @@ final readonly class Bootstrapper
         $container = new ServiceManager(self::cached());
 
         $app = $container->get(Application::class);
-
-        assert($app instanceof Application);
-
         $factory = $container->get(MiddlewareFactory::class);
 
+        assert($app instanceof Application);
         assert($factory instanceof MiddlewareFactory);
 
         self::pipeline($app, $factory, $container);
         self::routes($app, $factory, $container);
 
-        return [$app, $factory, $container];
+        return new Kernel($app, $container);
     }
 
     /**
-     * @return array<array-key, mixed>
+     * @return array<int|string, mixed>
      */
     private static function cached(): array
     {
@@ -76,22 +71,28 @@ final readonly class Bootstrapper
     }
 
     /**
-     * @return array<array-key, mixed>
+     * @return array<int|string, mixed>
      */
     private static function config(): array
     {
-        $env = self::env();
+        (new IniPutEnv(new GlobIterator(__DIR__ . '/../../.env.ini')))();
+
+        $env = getenv('APP_ENV');
+
+        if (!is_string($env)) {
+            throw new LogicException('APP_ENV');
+        }
 
         $config = (new ConfigAggregator([
-            MezioConfigProvider::class,
-            MezzioRouterFastRouteRouterConfigProvider::class,
-            MezzioRouterConfigProvider::class,
-            LaminasDiactorosConfigProvider::class,
             ConfigProvider::class,
-            new PhpFileProvider(realpath(__DIR__ . '/../../config/') . '/global.php'),
-            new PhpFileProvider(realpath(__DIR__ . '/../../') . '/.env.php'),
-            new PhpFileProvider(realpath(__DIR__ . '/../../config/') . "/{$env}.php"),
-            new PhpFileProvider(realpath(__DIR__ . '/../../') . "/.env.{$env}.php"),
+            LaminasDiactorosConfigProvider::class,
+            MezioConfigProvider::class,
+            MezzioRouterConfigProvider::class,
+            MezzioRouterFastRouteRouterConfigProvider::class,
+            new PhpFileProvider(__DIR__ . '/../../config/global.php'),
+            new PhpFileProvider(__DIR__ . '/../../.env.php'),
+            new PhpFileProvider(__DIR__ . '/../../config/' . $env . '.php'),
+            new PhpFileProvider(__DIR__ . '/../../.env.' . $env . '.php'),
         ]))->getMergedConfig();
 
         $dependencies = (new ConfigAggregator([
@@ -108,17 +109,6 @@ final readonly class Bootstrapper
         assert(is_array($dependencies));
 
         return $dependencies;
-    }
-
-    private static function env(): string
-    {
-        $env = getenv('APP_ENV');
-
-        if (!is_string($env)) {
-            throw new LogicException('APP_ENV');
-        }
-
-        return $env;
     }
 
     private static function pipeline(Application $app, MiddlewareFactory $factory, ContainerInterface $container): void

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Factory;
 
 use Laminas\Db\Adapter\Adapter;
-use Laminas\Db\Adapter\AdapterInterface;
 use Psr\Container\ContainerInterface;
 
 use function assert;
@@ -13,7 +12,7 @@ use function is_array;
 
 final readonly class AdapterInterfaceFactory
 {
-    public static function factory(ContainerInterface $container): AdapterInterface
+    public static function factory(ContainerInterface $container): Adapter
     {
         $config = $container->get('config');
 

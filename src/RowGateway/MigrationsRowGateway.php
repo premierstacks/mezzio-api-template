@@ -9,5 +9,6 @@ use Laminas\Db\RowGateway\RowGateway;
 /**
  * @property string $created_at
  * @property int $id
+ * @property string $selector
  */
-final class UsersRowGateway extends RowGateway {}
+final class MigrationsRowGateway extends RowGateway {}

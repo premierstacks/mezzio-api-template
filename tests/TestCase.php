@@ -5,48 +5,55 @@ declare(strict_types=1);
 namespace Tests;
 
 use App\Bootstrap\Bootstrapper;
+use App\Bootstrap\Kernel;
+use App\Migrator\Migrations;
+use App\Migrator\Migrator;
+use Laminas\Db\Adapter\Adapter;
+use Laminas\Db\Adapter\AdapterInterface;
+use Laminas\ServiceManager\ServiceManager;
 use Mezzio\Application;
-use Mezzio\MiddlewareFactory;
+use Override;
 use PHPUnit\Framework\TestCase as VendorTestCase;
-use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestFactoryInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UriInterface;
+use Random\Randomizer;
 
+use function array_replace;
 use function assert;
+use function implode;
+use function is_array;
+use function range;
 
 /**
  * @internal
  */
 abstract class TestCase extends VendorTestCase
 {
-    private Application|null $app = null;
+    private string $id = '';
 
-    private ContainerInterface|null $container = null;
+    private Kernel|null $kernel = null;
 
-    private MiddlewareFactory|null $middleware = null;
+    private bool $migrated = false;
+
+    protected function adapter(): Adapter
+    {
+        return $this->resolve(Adapter::class);
+    }
 
     protected function app(): Application
     {
-        if ($this->app === null) {
-            [$this->app, $this->middleware, $this->container] = Bootstrapper::bootstrap();
-        }
-
-        return $this->app;
+        return $this->kernel()->app;
     }
 
-    protected function container(): ContainerInterface
+    protected function container(): ServiceManager
     {
-        if ($this->container === null) {
-            [$this->app, $this->middleware, $this->container] = Bootstrapper::bootstrap();
-        }
-
-        return $this->container;
+        return $this->kernel()->container;
     }
 
     /**
-     * @param array<array-key, mixed> $params
+     * @param array<int|string, mixed> $params
      */
     protected function createServerRequest(string $method, UriInterface|string $uri, array $params = []): ServerRequestInterface
     {
@@ -58,13 +65,42 @@ abstract class TestCase extends VendorTestCase
         return $this->app()->handle($request);
     }
 
-    protected function middleware(): MiddlewareFactory
+    protected function kernel(): Kernel
     {
-        if ($this->middleware === null) {
-            [$this->app, $this->middleware, $this->container] = Bootstrapper::bootstrap();
+        if ($this->kernel === null) {
+            $this->kernel = Bootstrapper::bootstrap();
         }
 
-        return $this->middleware;
+        return $this->kernel;
+    }
+
+    protected function migrate(): void
+    {
+        $this->migrated = true;
+
+        $adapter = $this->adapter();
+
+        $adapter->getDriver()->createStatement("DROP DATABASE IF EXISTS `{$this->id}`")->execute();
+        $adapter->getDriver()->createStatement("CREATE DATABASE IF NOT EXISTS `{$this->id}` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci")->execute();
+
+        $container = $this->container();
+
+        $config = $container->get('config');
+
+        assert(is_array($config) && isset($config['db']) && is_array($config['db']));
+
+        $container->setAllowOverride(true);
+
+        $override = new Adapter(array_replace($config['db'], [
+            'database' => $this->id,
+        ]));
+
+        $container->setService(AdapterInterface::class, $override);
+        $container->setService(Adapter::class, $override);
+
+        $container->setAllowOverride(false);
+
+        $this->resolve(Migrator::class)->forward($this->resolve(Migrations::class));
     }
 
     /**
@@ -81,5 +117,23 @@ abstract class TestCase extends VendorTestCase
         assert($resolved instanceof $class);
 
         return $resolved;
+    }
+
+    #[Override]
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->id = (new Randomizer())->getBytesFromString(implode('', range('a', 'z') + range('A', 'Z') + range('0', '9')), 32);
+    }
+
+    #[Override]
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+
+        if ($this->migrated) {
+            $this->adapter()->getDriver()->createStatement("DROP DATABASE IF EXISTS `{$this->id}`")->execute();
+        }
     }
 }

@@ -16,7 +16,7 @@ use const PHP_SAPI;
 final readonly class ApcuConfigCache
 {
     /**
-     * @return array<array-key, mixed>|null
+     * @return array<int|string, mixed>|null
      */
     public function get(): array|null
     {
@@ -35,7 +35,7 @@ final readonly class ApcuConfigCache
     }
 
     /**
-     * @param array<array-key, mixed> $config
+     * @param array<int|string, mixed> $config
      */
     public function set(array $config): void
     {
