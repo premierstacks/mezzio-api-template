@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Migrator;
+namespace App\Database;
 
 use App\Migration\CreateUsersTableMigration;
 use IteratorAggregate;
@@ -24,7 +24,7 @@ final readonly class Migrations implements IteratorAggregate
         $this->container = $container;
     }
 
-    public static function factory(ContainerInterface $container): self
+    public static function provide(ContainerInterface $container): self
     {
         return new self($container);
     }

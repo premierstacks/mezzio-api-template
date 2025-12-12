@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Migration;
 
-use App\Migrator\MigrationInterface;
+use App\Database\MigrationInterface;
 use Override;
 use Psr\Container\ContainerInterface;
 
@@ -12,7 +12,7 @@ final readonly class CreateUsersTableMigration implements MigrationInterface
 {
     public function __construct() {}
 
-    public static function factory(ContainerInterface $container): self
+    public static function provide(ContainerInterface $container): self
     {
         return new self();
     }
@@ -35,8 +35,9 @@ final readonly class CreateUsersTableMigration implements MigrationInterface
         yield <<<'EOF'
             CREATE TABLE IF NOT EXISTS `users` (
               `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-              `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-            );
+              `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+              `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
             EOF;
     }
 }

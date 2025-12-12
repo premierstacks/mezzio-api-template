@@ -5,12 +5,12 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
 # Variables
-MAKE_PHP_8_3_EXE ?= php8.3
+MAKE_PHP_8_5_EXE ?= php8.5
 MAKE_COMPOSER_EXE ?= /usr/local/bin/composer
 MAKE_NPM_EXE ?= npm
 MAKE_NODE_EXE ?= node
 
-MAKE_PHP ?= ${MAKE_PHP_8_3_EXE}
+MAKE_PHP ?= ${MAKE_PHP_8_5_EXE}
 MAKE_COMPOSER ?= ${MAKE_PHP} ${MAKE_COMPOSER_EXE}
 MAKE_NPM ?= ${MAKE_NPM_EXE}
 MAKE_NODE ?= ${MAKE_NODE_EXE}

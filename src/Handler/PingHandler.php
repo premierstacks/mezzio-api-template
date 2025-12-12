@@ -22,7 +22,7 @@ final readonly class PingHandler implements RequestHandlerInterface
 
     public function __construct() {}
 
-    public static function factory(ContainerInterface $container): self
+    public static function provide(ContainerInterface $container): self
     {
         return new self();
     }

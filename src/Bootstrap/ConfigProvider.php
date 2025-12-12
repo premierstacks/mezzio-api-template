@@ -4,19 +4,14 @@ declare(strict_types=1);
 
 namespace App\Bootstrap;
 
-use App\Factory\AdapterInterfaceFactory;
+use App\Database\Migrations;
+use App\Database\Migrator;
+use App\Database\PdoConfig;
+use App\Database\PdoConfigInterface;
 use App\Handler\PingHandler;
-use App\Migration\CreateMigrationsTable;
 use App\Migration\CreateUsersTableMigration;
-use App\Migrator\Migrations;
-use App\Migrator\Migrator;
-use App\Migrator\MigratorExecutor;
-use App\Migrator\MigratorMarker;
-use App\RowGateway\UsersRowGateway;
-use App\TableGateway\MigrationsTableGateway;
-use App\TableGateway\UsersTableGateway;
-use Laminas\Db\Adapter\Adapter;
-use Laminas\Db\Adapter\AdapterInterface;
+use App\Provider\PdoProvider;
+use PDO;
 
 final readonly class ConfigProvider
 {
@@ -37,18 +32,12 @@ final readonly class ConfigProvider
     {
         return [
             'factories' => [
-                Adapter::class => AdapterInterfaceFactory::class . '::factory',
-                AdapterInterface::class => AdapterInterfaceFactory::class . '::factory',
-                CreateMigrationsTable::class => CreateMigrationsTable::class . '::factory',
-                CreateUsersTableMigration::class => CreateUsersTableMigration::class . '::factory',
-                Migrations::class => Migrations::class . '::factory',
-                MigrationsTableGateway::class => MigrationsTableGateway::class . '::factory',
-                Migrator::class => Migrator::class . '::factory',
-                MigratorExecutor::class => MigratorExecutor::class . '::factory',
-                MigratorMarker::class => MigratorMarker::class . '::factory',
-                PingHandler::class => PingHandler::class . '::factory',
-                UsersRowGateway::class => UsersRowGateway::class . '::factory',
-                UsersTableGateway::class => UsersTableGateway::class . '::factory',
+                CreateUsersTableMigration::class => CreateUsersTableMigration::class . '::provide',
+                Migrations::class => Migrations::class . '::provide',
+                Migrator::class => Migrator::class . '::provide',
+                PingHandler::class => PingHandler::class . '::provide',
+                PdoConfigInterface::class => PdoConfig::class . '::provide',
+                PDO::class => PdoProvider::class . '::provide',
             ],
         ];
     }

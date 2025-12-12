@@ -6,13 +6,13 @@ namespace Tests;
 
 use App\Bootstrap\Bootstrapper;
 use App\Bootstrap\Kernel;
-use App\Migrator\Migrations;
-use App\Migrator\Migrator;
-use Laminas\Db\Adapter\Adapter;
-use Laminas\Db\Adapter\AdapterInterface;
+use App\Database\Migrations;
+use App\Database\Migrator;
+use App\Database\PdoConfigInterface;
 use Laminas\ServiceManager\ServiceManager;
 use Mezzio\Application;
 use Override;
+use PDO;
 use PHPUnit\Framework\TestCase as VendorTestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestFactoryInterface;
@@ -20,10 +20,8 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UriInterface;
 use Random\Randomizer;
 
-use function array_replace;
 use function assert;
 use function implode;
-use function is_array;
 use function range;
 
 /**
@@ -36,11 +34,6 @@ abstract class TestCase extends VendorTestCase
     private Kernel|null $kernel = null;
 
     private bool $migrated = false;
-
-    protected function adapter(): Adapter
-    {
-        return $this->resolve(Adapter::class);
-    }
 
     protected function app(): Application
     {
@@ -78,29 +71,31 @@ abstract class TestCase extends VendorTestCase
     {
         $this->migrated = true;
 
-        $adapter = $this->adapter();
+        $pdo = $this->pdo();
 
-        $adapter->getDriver()->createStatement("DROP DATABASE IF EXISTS `{$this->id}`")->execute();
-        $adapter->getDriver()->createStatement("CREATE DATABASE IF NOT EXISTS `{$this->id}` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci")->execute();
+        $pdo->exec("DROP DATABASE IF EXISTS `{$this->id}`");
+        $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$this->id}` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci");
 
         $container = $this->container();
+        $config = $container->get(PdoConfigInterface::class);
 
-        $config = $container->get('config');
+        assert($config instanceof PdoConfigInterface);
 
-        assert(is_array($config) && isset($config['db']) && is_array($config['db']));
+        $override = $config->clone([
+            'dbname' => $this->id,
+        ]);
 
         $container->setAllowOverride(true);
-
-        $override = new Adapter(array_replace($config['db'], [
-            'database' => $this->id,
-        ]));
-
-        $container->setService(AdapterInterface::class, $override);
-        $container->setService(Adapter::class, $override);
-
+        $container->setService(PDO::class, null);
+        $container->setService(PdoConfigInterface::class, $override);
         $container->setAllowOverride(false);
 
         $this->resolve(Migrator::class)->forward($this->resolve(Migrations::class));
+    }
+
+    protected function pdo(): PDO
+    {
+        return $this->resolve(PDO::class);
     }
 
     /**
@@ -133,7 +128,7 @@ abstract class TestCase extends VendorTestCase
         parent::tearDown();
 
         if ($this->migrated) {
-            $this->adapter()->getDriver()->createStatement("DROP DATABASE IF EXISTS `{$this->id}`")->execute();
+            $this->pdo()->exec("DROP DATABASE IF EXISTS `{$this->id}`");
         }
     }
 }

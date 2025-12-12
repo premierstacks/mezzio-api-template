@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Bin;
 
 use App\Bootstrap\Bootstrapper;
-use App\Migrator\Migrations;
-use App\Migrator\Migrator;
+use App\Database\Migrations;
+use App\Database\Migrator;
 
 use function assert;
 use function chdir;

@@ -6,12 +6,13 @@ namespace Config;
 
 use Laminas\ConfigAggregator\ArrayProvider;
 use Laminas\ConfigAggregator\ConfigAggregator;
+use PDO;
 
 return (new ConfigAggregator([
     new ArrayProvider([
-        'db' => [
-            'database' => null,
-            'password' => null,
+        PDO::class => [
+            'dbname' => '',
+            'password' => '',
             'username' => 'ci',
         ],
         'debug' => true,
